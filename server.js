@@ -1,90 +1,67 @@
 const express = require("express");
 const multer = require("multer");
-const cors = require("cors");
-const path = require("path");
-const fs = require("fs");
 const nodemailer = require("nodemailer");
-
+const fs = require("fs");
+const path = require("path");
 require("dotenv").config();
 
 const app = express();
-const port = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-app.use(cors());
-app.use(express.static("public")); // HTML ve JS dosyalarını göstermek için
-
-const uploadDir = path.join(__dirname, "uploads");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
-}
+app.use(express.static("public"));
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, uploadDir);
+    cb(null, "uploads/");
   },
   filename: function (req, file, cb) {
-    const uniqueName = `${Date.now()}-${file.originalname}`;
-    cb(null, uniqueName);
-  }
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + "-" + file.originalname);
+  },
 });
 
-const upload = multer({ storage });
+const upload = multer({ storage: storage });
 
 app.post("/upload", upload.single("file"), async (req, res) => {
+  const { name, email, message } = req.body;
   const file = req.file;
-  const { name, email, message, consent } = req.body;
 
   if (!file) {
     return res.status(400).send("Dosya yüklenemedi.");
   }
 
   try {
-    const transporter = nodemailer.createTransport({
-      service: "Gmail",
+    let transporter = nodemailer.createTransport({
+      service: "gmail",
       auth: {
         user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
+        pass: process.env.EMAIL_PASS,
+      },
     });
 
-    await transporter.sendMail({
-      from: `"Form Botu" <${process.env.EMAIL_USER}>`,
-      to: process.env.RECEIVER_EMAIL,
-      subject: "Yeni dosya yüklemesi ve form bilgileri",
-      text: `
-Ad: ${name}
-E-posta: ${email}
-Mesaj: ${message}
-Onay: ${consent}
-
-Yüklenen Dosya: ${file.filename}
-Yol: ${file.path}
-      `,
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: process.env.EMAIL_USER,
+      subject: "Yeni Teklif Dosyası",
+      text: `Ad: ${name}\nE-posta: ${email}\nMesaj: ${message}`,
       attachments: [
         {
           filename: file.originalname,
-          path: file.path
-        }
-      ]
-    });
+          path: file.path,
+        },
+      ],
+    };
 
-    console.log("📧 Mail gönderildi!");
-    // Ana sayfaya yönlendiriyoruz
-    res.redirect("/?success=1");
+    await transporter.sendMail(mailOptions);
+
+    // ✅ Yönlendirme: vahric.com
+    res.redirect("https://vahric.com/?success=1");
   } catch (error) {
-    console.error("❌ Mail gönderme hatası:", error);
-    res.status(500).send("Dosya yüklendi ama mail gönderilemedi.");
+    console.error("Mail gönderim hatası:", error);
+    res.status(500).send("Bir hata oluştu.");
   }
 });
 
-// Ana sayfa
-app.get("/", (req, res) => {
-  // public klasöründeki index.html'i gösterecek
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-app.listen(port, () => {
-  console.log(`🚀 Sunucu http://localhost:${port} adresinde çalışıyor.`);
+app.listen(PORT, () => {
+  console.log(`Sunucu çalışıyor: http://localhost:${PORT}`);
 });
