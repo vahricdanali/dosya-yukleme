@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Teklif Formu</title>
+</head>
+<body>
+  <h2>Teklif Alın</h2>
+  <form action="/upload" method="POST" enctype="multipart/form-data">
+    <input type="text" name="name" placeholder="Adınız" required><br>
+    <input type="email" name="email" placeholder="E-posta" required><br>
+    <textarea name="message" placeholder="Mesajınız"></textarea><br>
+    <label><input type="checkbox" name="consent" required> KVKK onaylıyorum</label><br><br>
+    <input type="file" name="file" accept=".jpg,.jpeg,.png,.stl,.3dm,.pdf" required><br><br>
+    <button type="submit">Gönder</button>
+  </form>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("success") === "1") {
+      alert("✅ Dosyanız başarıyla gönderildi ve e-posta iletildi!");
+    }
+  </script>
+</body>
+</html>

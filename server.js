@@ -13,6 +13,7 @@ const port = process.env.PORT || 3000;
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cors());
+app.use(express.static("public")); // HTML ve JS dosyalarını göstermek için
 
 const uploadDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadDir)) {
@@ -38,14 +39,6 @@ app.post("/upload", upload.single("file"), async (req, res) => {
   if (!file) {
     return res.status(400).send("Dosya yüklenemedi.");
   }
-
-  console.log("✅ Dosya alındı:");
-  console.log("Ad:", name);
-  console.log("E-posta:", email);
-  console.log("Mesaj:", message);
-  console.log("Onay:", consent);
-  console.log("Dosya adı:", file.filename);
-  console.log("Yol:", file.path);
 
   try {
     const transporter = nodemailer.createTransport({
@@ -78,15 +71,18 @@ Yol: ${file.path}
     });
 
     console.log("📧 Mail gönderildi!");
-    res.status(200).send("Dosyanız yüklendi ve mail gönderildi.");
+    // Ana sayfaya yönlendiriyoruz
+    res.redirect("/?success=1");
   } catch (error) {
     console.error("❌ Mail gönderme hatası:", error);
     res.status(500).send("Dosya yüklendi ama mail gönderilemedi.");
   }
 });
 
+// Ana sayfa
 app.get("/", (req, res) => {
-  res.send("Sunucu çalışıyor. Dosya yükleme için POST /upload kullanın.");
+  // public klasöründeki index.html'i gösterecek
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 app.listen(port, () => {
