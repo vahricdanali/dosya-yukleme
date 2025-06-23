@@ -24,18 +24,24 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-app.post('/upload', upload.single('attachment'), async (req, res) => {
-  const { email, message } = req.body;
+app.post("/upload", upload.single("file"), (req, res) => {
   const file = req.file;
+  const { name, email, message, consent } = req.body;
 
-  if (!file) return res.status(400).send('Dosya alınamadı.');
+  if (!file) {
+    return res.status(400).send("Dosya yüklenemedi.");
+  }
 
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    }
+  // DEBUG: konsola yaz
+  console.log("İsim:", name);
+  console.log("E-posta:", email);
+  console.log("Açıklama:", message);
+  console.log("Onay:", consent);
+  console.log("Dosya yolu:", file.path);
+
+  // Buraya e-posta gönderme ya da başka işlem gelecek
+  res.status(200).send("Dosyanız başarıyla alındı. Teşekkür ederiz.");
+});
   });
 
   const mailOptions = {
