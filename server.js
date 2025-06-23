@@ -1,29 +1,37 @@
-const express = require('express');
-const multer = require('multer');
-const nodemailer = require('nodemailer');
-const path = require('path');
-const fs = require('fs');
-require('dotenv').config();
-const cors = require('cors');
+const express = require("express");
+const multer = require("multer");
+const cors = require("cors");
+const path = require("path");
+const fs = require("fs");
 
 const app = express();
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+const port = process.env.PORT || 3000;
 
+// Gelen verileri işleyebilmek için
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(cors());
+
+// "uploads" klasörü yoksa oluştur
+const uploadDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir);
+}
+
+// Multer ayarları
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadPath = path.join(__dirname, 'uploads');
-    if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath);
-    cb(null, uploadPath);
+    cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname);
+    const uniqueName = `${Date.now()}-${file.originalname}`;
+    cb(null, uniqueName);
   }
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({ storage });
 
+// Dosya yükleme ve form verisi alma endpoint’i
 app.post("/upload", upload.single("file"), (req, res) => {
   const file = req.file;
   const { name, email, message, consent } = req.body;
@@ -32,40 +40,24 @@ app.post("/upload", upload.single("file"), (req, res) => {
     return res.status(400).send("Dosya yüklenemedi.");
   }
 
-  // DEBUG: konsola yaz
-  console.log("İsim:", name);
+  // Terminale bilgi yazdır
+  console.log("✅ Dosya alındı:");
+  console.log("Ad:", name);
   console.log("E-posta:", email);
-  console.log("Açıklama:", message);
+  console.log("Mesaj:", message);
   console.log("Onay:", consent);
-  console.log("Dosya yolu:", file.path);
+  console.log("Dosya adı:", file.filename);
+  console.log("Yol:", file.path);
 
-  // Buraya e-posta gönderme ya da başka işlem gelecek
-  res.status(200).send("Dosyanız başarıyla alındı. Teşekkür ederiz.");
-});
-  });
-
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: process.env.RECEIVER_EMAIL,
-    subject: 'Yeni Dosya Yüklemesi',
-    text: `E-posta: ${email}\nMesaj: ${message}`,
-    attachments: [
-      {
-        filename: file.originalname,
-        path: file.path
-      }
-    ]
-  };
-
-  try {
-    await transporter.sendMail(mailOptions);
-    res.send('Dosya başarıyla gönderildi.');
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('E-posta gönderilemedi.');
-  }
+  res.status(200).send("Dosyanız başarıyla yüklendi.");
 });
 
-app.listen(3000, () => {
-  console.log('Sunucu http://localhost:3000 adresinde çalışıyor');
+// Anasayfa kontrolü
+app.get("/", (req, res) => {
+  res.send("Sunucu çalışıyor. Dosya yükleme için POST /upload kullanın.");
+});
+
+// Server başlat
+app.listen(port, () => {
+  console.log(`🚀 Sunucu http://localhost:${port} adresinde çalışıyor.`);
 });
